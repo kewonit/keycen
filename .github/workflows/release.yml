@@ -31,6 +31,7 @@ jobs:
             os: ubuntu-latest
             artifact: keycen
             archive: keycen-linux-aarch64.tar.gz
+            use_cross: true
           - target: x86_64-apple-darwin
             os: macos-latest
             artifact: keycen
@@ -52,17 +53,22 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !matrix.use_cross
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxtst-dev libxdo-dev
 
-      - name: Install cross-compilation tools (aarch64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+      - name: Install cross
+        if: matrix.use_cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
 
       - name: Build release binary
+        if: ${{ !matrix.use_cross }}
         run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build release binary (cross)
+        if: ${{ matrix.use_cross }}
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
