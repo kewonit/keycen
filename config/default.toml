@@ -1,0 +1,38 @@
+[general]
+enabled = true
+# "auto" = try grab mode first, fall back to listen mode
+# "grab" = force grab mode (fails if permissions insufficient)
+# "listen" = force listen mode (backspace-replace)
+mode = "auto"
+
+[replacements]
+# Custom word -> replacement mappings
+# Words detected by the built-in profanity engine that are NOT listed here
+# will be replaced with asterisks (e.g., "f***")
+#
+# Add your own custom mappings below, e.g.:
+# badword = "replacement"
+#
+# Built-in mappings are included automatically at runtime.
+# Any mappings you add here will override the built-ins.
+
+[exclusions]
+# Process names where keycen will NOT filter (case-insensitive)
+# Typically terminals and code editors where autocorrect is unwanted
+apps = [
+    "cmd.exe",
+    "powershell.exe",
+    "pwsh.exe",
+    "WindowsTerminal.exe",
+    "bash",
+    "zsh",
+    "fish",
+    "sh",
+    "Terminal",
+    "iTerm2",
+    "alacritty",
+    "kitty",
+    "wezterm",
+    "tmux",
+    "screen",
+]

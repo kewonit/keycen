@@ -1,0 +1,45 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# local-only copilot config (skills, agents, instructions)
+.github/agents
+.github/skills
+.github/copilot-instructions.md
+
+# misc
+.DS_Store
+*.pem
+
+# env files
+.env*
+!.env.example
+
+# local documentation
+docs.txt
+ROADMAP.local.md
+
+# heap snapshots & analysis artifacts
+*.heapsnapshot
+scripts/heap-analysis/output/
+scripts/heap-analysis/__pycache__/
+
+# internal planning docs (not for public release)
+docs/internal/
+docs/superpowers/
+
+# heap analysis tooling & output
+scripts/
+scripts/heap-analysis/
+
+# editor settings
+.vscode/
+.idea/
+
+
+
+# Added by cargo
+
+/target
