@@ -22,8 +22,7 @@ impl ActiveWindowDetector for LinuxDetector {
 }
 
 fn get_focused_via_x11() -> Option<String> {
-    use x11rb::connection::Connection;
-    use x11rb::protocol::xproto::{AtomEnum, ConnectionExt};
+    use x11rb::protocol::xproto::ConnectionExt;
 
     let (conn, _screen) = x11rb::connect(None).ok()?;
 
@@ -52,6 +51,8 @@ fn get_window_pid(
     mut window: u32,
     pid_atom: u32,
 ) -> Option<u32> {
+    use x11rb::protocol::xproto::AtomEnum;
+
     for _ in 0..10 {
         let prop = conn
             .get_property(false, window, pid_atom, AtomEnum::CARDINAL, 0, 1)
