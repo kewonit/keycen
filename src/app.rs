@@ -184,9 +184,7 @@ impl App {
             #[cfg(target_os = "macos")]
             {
                 unsafe {
-                    use core_foundation::runloop::{
-                        CFRunLoopRunInMode, kCFRunLoopDefaultMode,
-                    };
+                    use core_foundation::runloop::{kCFRunLoopDefaultMode, CFRunLoopRunInMode};
                     CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.05, 0);
                 }
             }
@@ -335,8 +333,8 @@ fn macos_accessibility_check() -> bool {
                 keys.as_ptr(),
                 values.as_ptr(),
                 1,
-                &kCFTypeDictionaryKeyCallBacks as *const _ as *const c_void,
-                &kCFTypeDictionaryValueCallBacks as *const _ as *const c_void,
+                &kCFTypeDictionaryKeyCallBacks as *const _,
+                &kCFTypeDictionaryValueCallBacks as *const _,
             );
             if !options.is_null() {
                 let result = AXIsProcessTrustedWithOptions(options);
