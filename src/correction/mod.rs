@@ -16,7 +16,11 @@ pub static IS_SIMULATING: AtomicBool = AtomicBool::new(false);
 pub static CORRECTION_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 
 /// Delay between simulated keystrokes (ms)
-/// Keep this minimal to avoid interleaving with user typing
+/// macOS requires longer delays for the OS to process simulated events.
+/// The rdev docs recommend at least 20ms on macOS.
+#[cfg(target_os = "macos")]
+const SIMULATE_DELAY_MS: u64 = 20;
+#[cfg(not(target_os = "macos"))]
 const SIMULATE_DELAY_MS: u64 = 1;
 
 /// Maximum word length we'll attempt to correct (safety limit)

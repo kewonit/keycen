@@ -922,6 +922,7 @@ name = "keycen"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "core-foundation 0.9.4",
  "dirs",
  "env_logger",
  "log",

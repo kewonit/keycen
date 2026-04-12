@@ -20,13 +20,15 @@ pub enum KeyClass {
 }
 
 /// Classify a key event into a buffer action
-pub fn classify_key(key: Key, name: Option<&str>, ctrl_held: bool) -> KeyClass {
-    // Check for paste operation (Ctrl+V)
-    if ctrl_held {
+pub fn classify_key(key: Key, name: Option<&str>, ctrl_held: bool, meta_held: bool) -> KeyClass {
+    // Check for paste/undo/cut operations
+    // On macOS, Cmd (Meta) is used instead of Ctrl for these shortcuts
+    let shortcut_held = ctrl_held || meta_held;
+    if shortcut_held {
         match key {
             Key::KeyV => return KeyClass::Paste,
             Key::KeyZ | Key::KeyX => return KeyClass::BufferReset,
-            _ => return KeyClass::Ignore, // Other ctrl combos don't produce text
+            _ => return KeyClass::Ignore, // Other shortcut combos don't produce text
         }
     }
 

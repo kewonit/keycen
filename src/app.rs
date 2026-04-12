@@ -35,6 +35,21 @@ impl App {
         let app_filter = AppFilter::new(self.config.exclusions.apps.clone());
         let app_filter = Arc::new(Mutex::new(app_filter));
 
+        // On macOS, check for Accessibility permissions early and warn the user
+        #[cfg(target_os = "macos")]
+        {
+            if !macos_accessibility_check() {
+                log::error!(
+                    "Accessibility permissions NOT granted! Keycen requires Accessibility access \
+                     to intercept and simulate keystrokes. Please grant access in: \
+                     System Settings > Privacy & Security > Accessibility. \
+                     Add this application's binary to the list and restart."
+                );
+            } else {
+                log::info!("Accessibility permissions verified ✓");
+            }
+        }
+
         // Determine input mode
         let requested_mode = match self.config.general.mode.as_str() {
             "grab" => InputMode::Grab,
@@ -145,7 +160,7 @@ impl App {
             }
         });
 
-        // Main thread: pump Windows messages + handle tray menu events
+        // Main thread: pump native messages + handle tray menu events
         let mut current_enabled = enabled;
         loop {
             // Pump Windows messages so the tray context menu works
@@ -160,6 +175,17 @@ impl App {
                         let _ = TranslateMessage(&msg);
                         DispatchMessageW(&msg);
                     }
+                }
+            }
+
+            // On macOS, pump the main run loop so that:
+            // 1. The system tray icon and context menu events are processed correctly
+            // 2. Any main-thread dispatch queues can execute (needed by some frameworks)
+            #[cfg(target_os = "macos")]
+            {
+                unsafe {
+                    use core_foundation::runloop::{kCFRunLoopDefaultMode, CFRunLoopRunInMode};
+                    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.05, 0);
                 }
             }
 
@@ -202,6 +228,8 @@ impl App {
                 }
             }
             // Small sleep to avoid busy-waiting
+            // On macOS, CFRunLoopRunInMode already provides the delay
+            #[cfg(not(target_os = "macos"))]
             thread::sleep(Duration::from_millis(50));
         }
     }
@@ -242,5 +270,81 @@ fn config_watch_loop(
             }
         }
         thread::sleep(Duration::from_secs(1));
+    }
+}
+
+/// Check if the process has Accessibility permissions on macOS.
+/// This is required for both listening to and simulating keyboard events.
+#[cfg(target_os = "macos")]
+fn macos_accessibility_check() -> bool {
+    use std::ffi::c_void;
+
+    #[link(name = "ApplicationServices", kind = "framework")]
+    extern "C" {
+        fn AXIsProcessTrusted() -> bool;
+    }
+
+    // Also try to prompt the user with the system dialog
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFStringCreateWithCString(
+            alloc: *const c_void,
+            c_str: *const u8,
+            encoding: u32,
+        ) -> *const c_void;
+        fn CFDictionaryCreate(
+            allocator: *const c_void,
+            keys: *const *const c_void,
+            values: *const *const c_void,
+            num_values: i64,
+            key_callbacks: *const c_void,
+            value_callbacks: *const c_void,
+        ) -> *const c_void;
+        fn CFRelease(cf: *const c_void);
+        static kCFTypeDictionaryKeyCallBacks: c_void;
+        static kCFTypeDictionaryValueCallBacks: c_void;
+        static kCFBooleanTrue: *const c_void;
+    }
+
+    #[link(name = "ApplicationServices", kind = "framework")]
+    extern "C" {
+        fn AXIsProcessTrustedWithOptions(options: *const c_void) -> bool;
+    }
+
+    unsafe {
+        // First do a simple check
+        let trusted = AXIsProcessTrusted();
+        if trusted {
+            return true;
+        }
+
+        // If not trusted, try prompting the system dialog
+        let key_cstr = b"AXTrustedCheckOptionPrompt\0";
+        let key = CFStringCreateWithCString(
+            std::ptr::null(),
+            key_cstr.as_ptr(),
+            0x08000100, // kCFStringEncodingUTF8
+        );
+        if !key.is_null() {
+            let keys = [key];
+            let values = [kCFBooleanTrue];
+            let options = CFDictionaryCreate(
+                std::ptr::null(),
+                keys.as_ptr(),
+                values.as_ptr(),
+                1,
+                &kCFTypeDictionaryKeyCallBacks as *const _,
+                &kCFTypeDictionaryValueCallBacks as *const _,
+            );
+            if !options.is_null() {
+                let result = AXIsProcessTrustedWithOptions(options);
+                CFRelease(options);
+                CFRelease(key);
+                return result;
+            }
+            CFRelease(key);
+        }
+
+        false
     }
 }

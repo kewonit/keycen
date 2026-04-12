@@ -21,6 +21,8 @@ pub enum BufferAction {
 pub struct WordBuffer {
     buffer: String,
     ctrl_held: bool,
+    /// On macOS, Cmd (Meta) is used instead of Ctrl for shortcuts like paste
+    meta_held: bool,
 }
 
 impl WordBuffer {
@@ -28,6 +30,7 @@ impl WordBuffer {
         WordBuffer {
             buffer: String::with_capacity(64),
             ctrl_held: false,
+            meta_held: false,
         }
     }
 
@@ -39,10 +42,14 @@ impl WordBuffer {
                 self.ctrl_held = true;
                 return BufferAction::Ignored;
             }
+            Key::MetaLeft | Key::MetaRight => {
+                self.meta_held = true;
+                return BufferAction::Ignored;
+            }
             _ => {}
         }
 
-        let class = classify_key(key, name, self.ctrl_held);
+        let class = classify_key(key, name, self.ctrl_held, self.meta_held);
 
         match class {
             KeyClass::WordChar(ch) => {
@@ -76,6 +83,9 @@ impl WordBuffer {
         match key {
             Key::ControlLeft | Key::ControlRight => {
                 self.ctrl_held = false;
+            }
+            Key::MetaLeft | Key::MetaRight => {
+                self.meta_held = false;
             }
             _ => {}
         }
